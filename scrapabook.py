@@ -1,4 +1,6 @@
 # -*-coding:utf-8-*-
+import csv
+
 import requests as rq
 from bs4 import BeautifulSoup
 
@@ -63,6 +65,14 @@ information_product["image_url"] = image_url
 
 for cle, value in information_product.items():
     print(f"{cle} : {value}")
+
+with open('information_books.csv', 'w') as csvfile:
+    fieldnames = ['product_page_url', 'upc', 'title', 'price_including_tax', 'price_excluding_tax',
+                  'number_available', 'product_description', 'category', 'review_rating', 'image_url']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+    writer.writeheader()
+    writer.writerow(information_product)
 
 
 
