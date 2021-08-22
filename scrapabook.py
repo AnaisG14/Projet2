@@ -9,14 +9,18 @@ product_page_url1 = 'http://books.toscrape.com/catalogue/in-a-dark-dark-wood_963
 product_page_url2 = 'http://books.toscrape.com/catalogue/the-stranger_861/index.html'
 product_page_url3 = 'http://books.toscrape.com/catalogue/sophies-world_966/index.html'
 
+def createSoup(url_category):
+    """ Pick up html code in url_category and return a soup object"""
+    page_content = rq.get(url_category, auth=('user', 'pass'))
+    return BeautifulSoup(page_content.content, 'html.parser')
+
 def getInformationBook(url_book):
     """ Pick up a page from url_book and extract information.
         Save information in a dictionnary.
         Stock dictionnary in file.csv """
-    page = rq.get(url_book, auth=('user', 'pass'))
+    soup = createSoup(url_book)
 
     # pick up all information of the web site
-    soup = BeautifulSoup(page.content, 'html.parser')
     title = soup.h1.string     # pick up title
     table_balises = soup.find_all("td") # pick up upc, prices, review rating, number available
     table_contenus = []
@@ -57,18 +61,19 @@ def getInformationBook(url_book):
 
     return information_product
 
-information_book = getInformationBook(product_page_url2)
-
-for cle, value in information_book.items():
-    print(f"{cle} : {value}")
-
-with open('information_books.csv', 'w') as csvfile:
-    fieldnames = ['product_page_url', 'upc', 'title', 'price_including_tax', 'price_excluding_tax',
+def saveFilecsv(filename, dicttosave):
+    """ Save in filename.csv a dictionnary named dicttosave"""
+    with open(filename, 'w') as csvfile:
+        fieldnames = ['product_page_url', 'upc', 'title', 'price_including_tax', 'price_excluding_tax',
                   'number_available', 'product_description', 'category', 'review_rating', 'image_url']
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-    writer.writeheader()
-    writer.writerow(information_book)
+        writer.writeheader()
+        writer.writerow(dicttosave)
 
+if __name__ == '__main__':
+    information_book = getInformationBook(product_page_url2)
+    for cle, value in information_book.items():
+        print(f"{cle} : {value}")
 
-
+    saveFilecsv("test.csv", information_book)

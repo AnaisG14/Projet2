@@ -106,31 +106,57 @@ def getUrlBook(url_category):
         i += 1
     return list_url_book
 
+def getUrlCategory():
+    """ Return a list of all url category of the site http://books.toscrape.com/"""
+    soup = createSoup('http://books.toscrape.com/')
+    sidebar_category = soup.find("div", class_="side_categories")
+    links_url_category = sidebar_category.find_all("a")
+    urls_category = []
+    names_category = []
+    for link in links_url_category:
+        urls_category.append(link.get('href'))
+        names_category.append(link.string)
+    urls_category1 = []
+    for link in urls_category:
+        urls_category1.append('http://books.toscrape.com/' + link)
+    del urls_category1[0]
+    del names_category[0]
+    names_category = [name.replace("\n", "") for name in names_category]
+    names_category = [name.replace(" ", "") for name in names_category]
+    return urls_category1, names_category
+
+################### main project ######################################################
 if __name__ == '__main__':
     # 2 exemples de liens de catégorie
     url_category1 = 'http://books.toscrape.com/catalogue/category/books/fantasy_19/index.html'
     url_category2 = "http://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
 
-    # return list of page of choosed category
-    list_url1 = getAllPages(url_category2)
+    # return list of url of all category
+    categories_url_name = getUrlCategory()
+    categories_url = categories_url_name[0]
+    categories_name = categories_url_name[1]
+
+    # for each category, return a dictionnary with cle:all pages category, element: url books of category
+    dict_categories = {}
+    i = 0
+    for url in categories_url:
+        dict_categories[categories_name[i]] = getAllPages(categories_url[i])
+        i += 1
 
     # return list of url for each book of the category
-    url_all_books_in_category = []
-    for url in list_url1:
-        url_book= getUrlBook(url)
-        for url in url_book:
-            url_all_books_in_category.append(url)
+    for category, urls in dict_categories.items():
+        url_all_books_in_category = []
+        for url in urls:
+            url_book= getUrlBook(url)
+            for url in url_book:
+                url_all_books_in_category.append(url)
+        # return a list of all dictionnary of information for one book
+        list_informations_books = []
+        for url in url_all_books_in_category:
+            info_book = getInformationBook(url)
+            list_informations_books.append(info_book)
+        category = category + ".csv"
+        createFielcsv(category)
+        for book in list_informations_books:
+            saveFilecsv(category, book)
 
-    # return a list of all dictionnary of information for one book
-    list_informations_books = []
-    for url in url_all_books_in_category:
-        info_book = getInformationBook(url)
-        list_informations_books.append(info_book)
-    print(list_informations_books)
-
-    # create file test.csv and add information for each book
-    createFielcsv("test.csv")
-    for book in list_informations_books:
-        saveFilecsv("test.csv", book)
-
-# test changement de branch pour mon premier projet
