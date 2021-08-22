@@ -14,6 +14,7 @@ def getInformationBook(url_book):
 
     # pick up all information of the web site
     title = soup.h1.string     # pick up title
+    title_to_save = title.replace("/", "_") + ".jpg"
     table_balises = soup.find_all("td") # pick up upc, prices, review rating, number available
     table_contenus = []
     for contenu in table_balises:
@@ -37,6 +38,7 @@ def getInformationBook(url_book):
     balises_a = soup.find_all("a")      # pick up image url and category
     category = (balises_a[3]).string
     image_url = (soup.img).get('src')
+    image_url = (image_url.replace("../..", "http://books.toscrape.com"))
 
     # save all information in a dictionnary
     information_product = {}
@@ -50,6 +52,7 @@ def getInformationBook(url_book):
     information_product['category'] = category
     information_product['review_rating'] = review_rating
     information_product["image_url"] = image_url
+    downloadImage(image_url, title_to_save)
     return information_product
 
 def createFielcsv(filename):
@@ -125,6 +128,13 @@ def getUrlCategory():
     names_category = [name.replace(" ", "") for name in names_category]
     return urls_category1, names_category
 
+def downloadImage(url, title):
+    """ Download an image and save it as its title book"""
+    url_image = (rq.get(url)).content
+    with open (title, 'wb') as f:
+        f.write(url_image)
+    return f"Image downloaded as {title}"
+
 ################### main project ######################################################
 if __name__ == '__main__':
     # 2 exemples de liens de catégorie
@@ -159,4 +169,5 @@ if __name__ == '__main__':
         createFielcsv(category)
         for book in list_informations_books:
             saveFilecsv(category, book)
+
 
