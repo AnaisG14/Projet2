@@ -107,28 +107,4 @@ def getUrlBook(url_category):
     return list_url_book
 
 if __name__ == '__main__':
-    # 2 exemples de liens de catégorie
-    url_category1 = 'http://books.toscrape.com/catalogue/category/books/fantasy_19/index.html'
-    url_category2 = "http://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
 
-    # return list of page of choosed category
-    list_url1 = getAllPages(url_category2)
-
-    # return list of url for each book of the category
-    url_all_books_in_category = []
-    for url in list_url1:
-        url_book= getUrlBook(url)
-        for url in url_book:
-            url_all_books_in_category.append(url)
-
-    # return a list of all dictionnary of information for one book
-    list_informations_books = []
-    for url in url_all_books_in_category:
-        info_book = getInformationBook(url)
-        list_informations_books.append(info_book)
-    print(list_informations_books)
-
-    # create file test.csv and add information for each book
-    createFielcsv("test.csv")
-    for book in list_informations_books:
-        saveFilecsv("test.csv", book)
