@@ -3,14 +3,14 @@ import csv
 import requests as rq
 from bs4 import BeautifulSoup
 
-def createSoup(url):
+def create_soup(url):
     """ Pick up html code in url and return a soup object"""
     page_content = rq.get(url, auth=('user', 'pass'))
     return BeautifulSoup(page_content.content, 'html.parser')
 
-def getInformationBook(url_book):
+def get_information_book(url_book):
     """ Pick up information from url_book and extract information."""
-    soup = createSoup(url_book)
+    soup = create_soup(url_book)
 
     # pick up all information of the web site
     title = soup.h1.string     # pick up title
@@ -52,17 +52,17 @@ def getInformationBook(url_book):
     information_product['category'] = category
     information_product['review_rating'] = review_rating
     information_product["image_url"] = image_url
-    downloadImage(image_url, title_to_save)
+    download_image(image_url, title_to_save)
     return information_product
 
-def createFielcsv(filename):
+def create_file_csv(filename):
     with open(filename, 'w') as csvfile:
         fieldnames = ['product_page_url', 'upc', 'title', 'price_including_tax', 'price_excluding_tax',
                       'number_available', 'product_description', 'category', 'review_rating', 'image_url']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-def saveFilecsv(filename, dicttosave):
+def save_file_csv(filename, dicttosave):
     """ Save in filename.csv a dictionnary named dicttosave"""
     with open(filename, 'a') as csvfile:
         fieldnames = ['product_page_url', 'upc', 'title', 'price_including_tax', 'price_excluding_tax',
@@ -70,9 +70,9 @@ def saveFilecsv(filename, dicttosave):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writerow(dicttosave)
 
-def getAllPages(url_category):
+def get_all_pages(url_category):
     """ Return a list of url of all page for one category even if category contains more than 20 books"""
-    soup = createSoup(url_category)
+    soup = create_soup(url_category)
     number_of_page = soup.find_all("li", class_="current")
     if number_of_page:
         current_page = (number_of_page[0]).string
@@ -90,9 +90,9 @@ def getAllPages(url_category):
         list_url = [url_category]
     return list_url
 
-def getUrlBook(url_category):
+def get_url_book(url_category):
     """ Return a list of url of all the books for url_category"""
-    soup = createSoup(url_category)
+    soup = create_soup(url_category)
     list_img = soup.find_all("img", class_="thumbnail")
     list_balises_parent = []
     list_url_book = []
@@ -109,9 +109,9 @@ def getUrlBook(url_category):
         i += 1
     return list_url_book
 
-def getUrlCategory():
+def get_url_category():
     """ Return a list of all url category of the site http://books.toscrape.com/"""
-    soup = createSoup('http://books.toscrape.com/')
+    soup = create_soup('http://books.toscrape.com/')
     sidebar_category = soup.find("div", class_="side_categories")
     links_url_category = sidebar_category.find_all("a")
     urls_category = []
@@ -128,7 +128,7 @@ def getUrlCategory():
     names_category = [name.replace(" ", "") for name in names_category]
     return urls_category1, names_category
 
-def downloadImage(url, title):
+def download_image(url, title):
     """ Download an image and save it as its title book"""
     url_image = (rq.get(url)).content
     with open (title, 'wb') as f:
@@ -139,7 +139,7 @@ def downloadImage(url, title):
 if __name__ == '__main__':
 
     # return list of url of all category
-    categories_url_name = getUrlCategory()
+    categories_url_name = get_url_category()
     categories_url = categories_url_name[0]
     categories_name = categories_url_name[1]
 
@@ -147,24 +147,24 @@ if __name__ == '__main__':
     dict_categories = {}
     i = 0
     for url in categories_url:
-        dict_categories[categories_name[i]] = getAllPages(categories_url[i])
+        dict_categories[categories_name[i]] = get_all_pages(categories_url[i])
         i += 1
 
     # return list of url for each book of the category
     for category, urls in dict_categories.items():
         url_all_books_in_category = []
         for url in urls:
-            url_book= getUrlBook(url)
+            url_book= get_url_book(url)
             for url in url_book:
                 url_all_books_in_category.append(url)
         # return a list of all dictionnary of information for one book
         list_informations_books = []
         for url in url_all_books_in_category:
-            info_book = getInformationBook(url)
+            info_book = get_information_book(url)
             list_informations_books.append(info_book)
         category = category + ".csv"
-        createFielcsv(category)
+        create_file_csv(category)
         for book in list_informations_books:
-            saveFilecsv(category, book)
+            save_file_csv(category, book)
 
 
