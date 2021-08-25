@@ -13,9 +13,11 @@ def get_information_book(url_book):
     soup = create_soup(url_book)
 
     # pick up all information of the web site
-    title = soup.h1.string     # pick up title
-    title_to_save = title.replace("/", "_") + ".jpg"
-    table_balises = soup.find_all("td") # pick up upc, prices, review rating, number available
+    # pick up title
+    title = soup.h1.string
+    title_to_save = f"{sup_caractere_special(title)}.jpg"
+    # pick up upc, prices, review rating, number available
+    table_balises = soup.find_all("td")
     table_contenus = []
     for contenu in table_balises:
         table_contenus.append(contenu.string)
@@ -26,16 +28,12 @@ def get_information_book(url_book):
     price_including_tax = float(price_including_tax[1:])
     review_rating = int(table_contenus[6])
     number_available_text = table_contenus[5]
-    number_available = "0"
-    for car in number_available_text:
-        if car in ["0","1","2","3","4","5","6","7","8","9"]:
-            number_available += car
-    number_available = int(number_available)
-
-    balises_p = soup.find_all("p")      # pick up product description
+    number_available = int(number_available_text.replace("In stock (","").replace(" available)",""))
+    # pick up product description
+    balises_p = soup.find_all("p")
     product_description = (balises_p[3]).string
-
-    balises_a = soup.find_all("a")      # pick up image url and category
+    # pick up image url and category
+    balises_a = soup.find_all("a")
     category = (balises_a[3]).string
     image_url = (soup.img).get('src')
     image_url = (image_url.replace("../..", "http://books.toscrape.com"))
@@ -71,42 +69,33 @@ def save_file_csv(filename, dicttosave):
         writer.writerow(dicttosave)
 
 def get_all_pages(url_category):
-    """ Return a list of url of all page for one category even if category contains more than 20 books"""
+    """ Continue scrapping in this category if category contains more than 20 books"""
     soup = create_soup(url_category)
-    number_of_page = soup.find_all("li", class_="current")
-    if number_of_page:
-        current_page = (number_of_page[0]).string
-    else:
-        current_page = ""
-    if current_page:
-        number = 0
-        for car in current_page:
-            if car in ["0","1","2","3","4","5","6","7","8","9"]:
-                number = int(car)
-        list_url = []
-        for i in range(number):
-            list_url.append(url_category[:-10] + "page-" + str(i+1) + ".html")
-    else:
-        list_url = [url_category]
-    return list_url
+    next = soup.select_one(".next > a")
+    if next:
+        link_page = f"{url_category}{next.get('href')}"
+        return link_page
 
 def get_url_book(url_category):
     """ Return a list of url of all the books for url_category"""
-    soup = create_soup(url_category)
-    list_img = soup.find_all("img", class_="thumbnail")
-    list_balises_parent = []
-    list_url_book = []
-    for img in list_img:
-        balise_parent = img.parent
-        if balise_parent.name == "a":
-            book_url = (balise_parent).get('href')
-            book_url = book_url[9:]
-            list_url_book.append(book_url)
-        list_balises_parent.append(balise_parent)
-    i = 0
-    for url in list_url_book:
-        list_url_book[i] = "http://books.toscrape.com/catalogue/" + url
-        i += 1
+    while url_category:
+        soup = create_soup(url_category)
+        list_img = soup.find_all("img", class_="thumbnail")
+        # list_balises_parent = []
+        list_url_book = []
+        for img in list_img:
+            balise_parent = img.parent
+            if balise_parent.name == "a":
+                book_url = (balise_parent).get('href')
+                book_url = book_url[9:]
+                book_url = f"http://books.toscrape.com/catalogue/{book_url}"
+                list_url_book.append(book_url)
+            # list_balises_parent.append(balise_parent)
+        link = get_all_pages(url_category)
+        if link:
+            url_category = url_category.replace("index.html", link)
+        else:
+            url_category = False
     return list_url_book
 
 def get_url_category():
@@ -114,57 +103,62 @@ def get_url_category():
     soup = create_soup('http://books.toscrape.com/')
     sidebar_category = soup.find("div", class_="side_categories")
     links_url_category = sidebar_category.find_all("a")
-    urls_category = []
-    names_category = []
+    categories_url_name = []
     for link in links_url_category:
-        urls_category.append(link.get('href'))
-        names_category.append(link.string)
-    urls_category1 = []
-    for link in urls_category:
-        urls_category1.append('http://books.toscrape.com/' + link)
-    del urls_category1[0]
-    del names_category[0]
-    names_category = [name.replace("\n", "") for name in names_category]
-    names_category = [name.replace(" ", "") for name in names_category]
-    return urls_category1, names_category
+        category_name = sup_caractere_special(link.string)
+        url_name = (f"http://books.toscrape.com/{link.get('href')}", category_name)
+        categories_url_name.append(url_name)
+    del categories_url_name[0]
+    return categories_url_name
+
+def sup_caractere_special(text):
+    """retourne le texte sans les caractères spéciaux : .:/\n et espaces afin de les utiliser
+    comme nom de fichier"""
+    caracteres_speciaux = [".", "/", ":", "\n", " "]
+    for car in caracteres_speciaux:
+        if car in text:
+            text = text.replace(car, "")
+    return text
 
 def download_image(url, title):
     """ Download an image and save it as its title book"""
     url_image = (rq.get(url)).content
-    with open (title, 'wb') as f:
+    with open(f"FichiersCSV/{title}", 'wb') as f:
         f.write(url_image)
-    return f"Image downloaded as {title}"
+    print(f"Image downloaded as {title}")
 
-################### main project ######################################################
-if __name__ == '__main__':
-
-    # return list of url of all category
-    categories_url_name = get_url_category()
-    categories_url = categories_url_name[0]
-    categories_name = categories_url_name[1]
-
-    # for each category, return a dictionnary with cle:all pages category, element: url books of category
-    dict_categories = {}
-    i = 0
-    for url in categories_url:
-        dict_categories[categories_name[i]] = get_all_pages(categories_url[i])
-        i += 1
-
+def save_informations_all_books(categories_url_name):
+    """ For each url_categoru, save all information book in one file for one category"""
     # return list of url for each book of the category
-    for category, urls in dict_categories.items():
-        url_all_books_in_category = []
-        for url in urls:
-            url_book= get_url_book(url)
-            for url in url_book:
-                url_all_books_in_category.append(url)
+    categories_url_name = categories_url_name
+    for item in categories_url_name:
+        url_book = get_url_book(item[0])
+        category = item[1]
         # return a list of all dictionnary of information for one book
         list_informations_books = []
-        for url in url_all_books_in_category:
+        for url in url_book:
             info_book = get_information_book(url)
             list_informations_books.append(info_book)
-        category = category + ".csv"
+        category = f"{category}.csv"
         create_file_csv(category)
         for book in list_informations_books:
             save_file_csv(category, book)
 
 
+def scraper():
+    """ Scrapping of the site "https://books.toscrape.com :
+        - get all url of categories of the site,
+        - get all url of all books for each category
+        - scrap each book and save in file.csv : product_page_url, upc, title, price_including_tax,
+        price_excluding tax, number available, product_description, category, review_rating,
+        image_url
+        - download image for each book.
+        At the end of the scrapping, you must have 2 new directories named "Fichiers.csv" and "Images"
+        contend one file.csv for each category and all images.
+        """
+    categories_url_name = get_url_category()
+    save_informations_all_books(categories_url_name)
+
+################### main project ######################################################
+if __name__ == '__main__':
+    scraper()
