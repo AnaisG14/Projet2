@@ -51,6 +51,7 @@ def get_information_book(url_book):
     information_product['review_rating'] = review_rating
     information_product["image_url"] = image_url
     download_image(image_url, title_to_save)
+    print(category)
     return information_product
 
 def create_file_csv(filename):
@@ -69,33 +70,35 @@ def save_file_csv(filename, dicttosave):
         writer.writerow(dicttosave)
 
 def get_all_pages(url_category):
-    """ Continue scrapping in this category if category contains more than 20 books"""
-    soup = create_soup(url_category)
-    next = soup.select_one(".next > a")
-    if next:
-        link_page = f"{url_category}{next.get('href')}"
-        return link_page
+    """ Return a list of all pages for one category"""
+    list_url_in_one_category = [url_category]
+    link_page = url_category
+    while link_page:
+        soup = create_soup(link_page)
+        next = soup.select_one(".next > a")
+        if next:
+            link_page = f'{url_category.replace("index.html","")}{next.get("href")}'
+            list_url_in_one_category.append(link_page)
+        else:
+            link_page = ""
+    return list_url_in_one_category
 
 def get_url_book(url_category):
     """ Return a list of url of all the books for url_category"""
-    while url_category:
-        soup = create_soup(url_category)
+    url_page_of_category = get_all_pages(url_category)
+    list_url_book = []
+    for url in url_page_of_category:
+        soup = create_soup(url)
         list_img = soup.find_all("img", class_="thumbnail")
         # list_balises_parent = []
-        list_url_book = []
         for img in list_img:
             balise_parent = img.parent
             if balise_parent.name == "a":
-                book_url = (balise_parent).get('href')
+                book_url = balise_parent.get('href')
                 book_url = book_url[9:]
                 book_url = f"http://books.toscrape.com/catalogue/{book_url}"
                 list_url_book.append(book_url)
             # list_balises_parent.append(balise_parent)
-        link = get_all_pages(url_category)
-        if link:
-            url_category = url_category.replace("index.html", link)
-        else:
-            url_category = False
     return list_url_book
 
 def get_url_category():
@@ -123,7 +126,7 @@ def sup_caractere_special(text):
 def download_image(url, title):
     """ Download an image and save it as its title book"""
     url_image = (rq.get(url)).content
-    with open(f"FichiersCSV/{title}", 'wb') as f:
+    with open(f"Images/{title}", 'wb') as f:
         f.write(url_image)
     print(f"Image downloaded as {title}")
 
@@ -139,7 +142,7 @@ def save_informations_all_books(categories_url_name):
         for url in url_book:
             info_book = get_information_book(url)
             list_informations_books.append(info_book)
-        category = f"{category}.csv"
+        category = f"FichiersCSV/{category}.csv"
         create_file_csv(category)
         for book in list_informations_books:
             save_file_csv(category, book)
