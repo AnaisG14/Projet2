@@ -27,16 +27,20 @@ def scraper():
     """ Scrapping of the site "https://books.toscrape.com :
         - get all url of categories of the site,
         - get all url of all books for each category
-        - scrap each book and save in file.csv : product_page_url, upc, title, price_including_tax,
-        price_excluding tax, number available, product_description, category, review_rating,
-        image_url
+        - scrap each book and save in file.csv : product_page_url, upc,
+        title, price_including_tax,price_excluding tax, number available,
+        product_description, category, review_rating, image_url
         - download image for each book.
-        At the end of the scrapping, you must have 2 new directories named "Fichiers.csv" and "Images"
-        contend one file.csv for each category and all images.
+        At the end of the scrapping, you must have 2 new directories named
+        "Fichiers.csv" and "Images" contend one file.csv for each category
+        and all images.
         """
     categories_url_name = get_url_category()
     save_category(categories_url_name)
 
+
 # ============================ main project =====================
+
+
 if __name__ == '__main__':
     scraper()

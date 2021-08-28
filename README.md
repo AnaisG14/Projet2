@@ -18,3 +18,4 @@ Afin d'utiliser le scraper dans de bonnes conditions, suivez les étapes ci-dess
 
 ## 4- Lancer le script:
     $ python3 scraper.py
+
