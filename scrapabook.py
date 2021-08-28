@@ -1,28 +1,18 @@
 # -*-coding:utf-8-*-
-import csv
 import requests as rq
-from bs4 import BeautifulSoup
+from utils import create_soup, sup_caractere_special
 
-# liens vers quelques pages test
-product_page_url = 'http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html'
-product_page_url1 = 'http://books.toscrape.com/catalogue/in-a-dark-dark-wood_963/index.html'
-product_page_url2 = 'http://books.toscrape.com/catalogue/the-stranger_861/index.html'
-product_page_url3 = 'http://books.toscrape.com/catalogue/sophies-world_966/index.html'
 
-def createSoup(url_category):
-    """ Pick up html code in url_category and return a soup object"""
-    page_content = rq.get(url_category, auth=('user', 'pass'))
-    return BeautifulSoup(page_content.content, 'html.parser')
-
-def getInformationBook(url_book):
-    """ Pick up a page from url_book and extract information.
-        Save information in a dictionnary.
-        Stock dictionnary in file.csv """
-    soup = createSoup(url_book)
+def get_information_book(url_book):
+    """ Pick up information from url_book and extract information."""
+    soup = create_soup(url_book)
 
     # pick up all information of the web site
-    title = soup.h1.string     # pick up title
-    table_balises = soup.find_all("td") # pick up upc, prices, review rating, number available
+    # pick up title
+    title = soup.h1.string
+    title_to_save = f"{sup_caractere_special(title)}.jpg"
+    # pick up upc, prices, review rating, number available
+    table_balises = soup.find_all("td")
     table_contenus = []
     for contenu in table_balises:
         table_contenus.append(contenu.string)
@@ -33,47 +23,35 @@ def getInformationBook(url_book):
     price_including_tax = float(price_including_tax[1:])
     review_rating = int(table_contenus[6])
     number_available_text = table_contenus[5]
-    number_available = "0"
-    for car in number_available_text:
-        if car in ["0","1","2","3","4","5","6","7","8","9"]:
-            number_available += car
-    number_available = int(number_available)
-
-    balises_p = soup.find_all("p")      # pick up product description
+    number_available = int(number_available_text.replace("In stock (", "").replace(" available)", ""))
+    # pick up product description
+    balises_p = soup.find_all("p")
     product_description = (balises_p[3]).string
-
-    balises_a = soup.find_all("a")      # pick up image url and category
+    # pick up image url and category
+    balises_a = soup.find_all("a")
     category = (balises_a[3]).string
-    image_url = (soup.img).get('src')
+    image_url = soup.img.get('src')
+    image_url = (image_url.replace("../..", "http://books.toscrape.com"))
 
     # save all information in a dictionnary
-    information_product = {}
-    information_product["product_page_url"] = product_page_url
-    information_product["upc"] = upc
-    information_product["title"] = title
-    information_product["price_including_tax"] = price_including_tax
-    information_product["price_excluding_tax"] = price_excluding_tax
-    information_product["number_available"] = number_available
-    information_product['product_description'] = product_description
-    information_product['category'] = category
-    information_product['review_rating'] = review_rating
-    information_product["image_url"] = image_url
-
+    information_product = {"product_page_url": url_book,
+                           "upc": upc,
+                           "title": title,
+                           "price_including_tax": price_including_tax,
+                           "price_excluding_tax": price_excluding_tax,
+                           "number_available": number_available,
+                           'product_description': product_description,
+                           'category': category,
+                           'review_rating': review_rating,
+                           "image_url": image_url}
+    download_image(image_url, title_to_save)
+    print(f"catégorie: {category}")
     return information_product
 
-def saveFilecsv(filename, dicttosave):
-    """ Save in filename.csv a dictionnary named dicttosave"""
-    with open(filename, 'w') as csvfile:
-        fieldnames = ['product_page_url', 'upc', 'title', 'price_including_tax', 'price_excluding_tax',
-                  'number_available', 'product_description', 'category', 'review_rating', 'image_url']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        writer.writeheader()
-        writer.writerow(dicttosave)
-
-if __name__ == '__main__':
-    information_book = getInformationBook(product_page_url2)
-    for cle, value in information_book.items():
-        print(f"{cle} : {value}")
-
-    saveFilecsv("test.csv", information_book)
+def download_image(url, title):
+    """ Download an image and save it as its title book"""
+    url_image = (rq.get(url)).content
+    with open(f"Images/{title}", 'wb') as f:
+        f.write(url_image)
+    print(f"Image downloaded as {title}")

@@ -1,59 +1,50 @@
 # -*-coding:utf-8-*-
-import scrapabook as scb
-import requests as rq
-from bs4 import BeautifulSoup
+from utils import create_soup, sup_caractere_special
 
-def getAllPages(url_category):
-    """ Get all page for one category if category contains more than 20 books"""
-    soup = scb.createSoup(url_category)
-    number_of_page = soup.find_all("li", class_="current")
-    if number_of_page:
-        current_page = (number_of_page[0]).string
-    else:
-        current_page = ""
-    if current_page:
-        number = 0
-        for car in current_page:
-            if car in ["0","1","2","3","4","5","6","7","8","9"]:
-                number = int(car)
-        list_url = []
-        for i in range(number):
-            list_url.append(url_category[:-10] + "page-" + str(i+1) + ".html")
-    else:
-        list_url = [url_category1]
-    return list_url
 
-def getUrlBook(url_category):
+def get_url_book(url_category):
     """ Return a list of url of all the books for url_category"""
-    soup = scb.createSoup(url_category)
-    list_img = soup.find_all("img", class_="thumbnail")
-    list_balises_parent = []
+    url_page_of_category = get_all_pages(url_category)
     list_url_book = []
-    for img in list_img:
-        balise_parent = img.parent
-        if balise_parent.name == "a":
-            book_url = (balise_parent).get('href')
-            book_url = book_url[9:]
-            list_url_book.append(book_url)
-        list_balises_parent.append(balise_parent)
-    i = 0
-    for url in list_url_book:
-        list_url_book[i] = "http://books.toscrape.com/catalogue/" + url
-        i += 1
+    for url in url_page_of_category:
+        soup = create_soup(url)
+        list_img = soup.find_all("img", class_="thumbnail")
+        # list_balises_parent = []
+        for img in list_img:
+            balise_parent = img.parent
+            if balise_parent.name == "a":
+                book_url = balise_parent.get('href')
+                book_url = book_url[9:]
+                book_url = f"http://books.toscrape.com/catalogue/{book_url}"
+                list_url_book.append(book_url)
+            # list_balises_parent.append(balise_parent)
     return list_url_book
 
-if __name__ == '__main__':
-    url_category1 = 'http://books.toscrape.com/catalogue/category/books/fantasy_19/index.html'
-    url_category2 = "http://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
 
-    list_url = getAllPages(url_category2)
-    url_all_books_in_category = []
-    for url in list_url:
-        url_book= getUrlBook(url)
-        for url in url_book:
-            url_all_books_in_category.append(url)
-    print(url_all_books_in_category)
+def get_url_category():
+    """ Return a list of all url category of the site http://books.toscrape.com/"""
+    soup = create_soup('http://books.toscrape.com/')
+    sidebar_category = soup.find("div", class_="side_categories")
+    links_url_category = sidebar_category.find_all("a")
+    categories_url_name = []
+    for link in links_url_category:
+        category_name = sup_caractere_special(link.string)
+        url_name = (f"http://books.toscrape.com/{link.get('href')}", category_name)
+        categories_url_name.append(url_name)
+    del categories_url_name[0]
+    return categories_url_name
 
-    for url in url_all_books_in_category:
-        info_book = scb.getInformationBook(url)
-        print(info_book)
+
+def get_all_pages(url_category):
+    """ Return a list of all pages for one category"""
+    list_url_in_one_category = [url_category]
+    link_page = url_category
+    while link_page:
+        soup = create_soup(link_page)
+        next_page = soup.select_one(".next > a")
+        if next_page:
+            link_page = f'{url_category.replace("index.html","")}{next_page.get("href")}'
+            list_url_in_one_category.append(link_page)
+        else:
+            link_page = ""
+    return list_url_in_one_category
