@@ -1,7 +1,9 @@
 # -*-coding:utf-8-*-
+import os
 from save_files import create_file_csv, save_file_csv
 from get_url_book import get_url_book, get_url_category
 from scrapabook import get_information_book
+
 
 
 def save_category(categories_url_name):
@@ -43,4 +45,12 @@ def scraper():
 
 
 if __name__ == '__main__':
+    if os.path.isdir("Images"):
+        pass
+    else:
+        os.mkdir("Images")
+    if os.path.isdir("FichiersCSV"):
+        pass
+    else:
+        os.mkdir("FichiersCSV")
     scraper()
